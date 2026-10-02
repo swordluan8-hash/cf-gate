@@ -1,0 +1,44 @@
+name: VPN Gate Node Check
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: gate-check
+  cancel-in-progress: false
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Detect nodes and generate public host list
+        run: |
+          python vpngate.py
+          rm -f public/sub.txt
+        env:
+          CHECK_WORKER: 'https://gate-check.jianailab.com/check?sstp=vpn:vpn@'
+          CHECK_CONCURRENCY: '16'
+          CHECK_TIMEOUT: '35'
+          EDGE_HOSTS: 'gate.jianailab.com:443'
+          EDT_DOMAIN: 'gate.jianailab.com'
+          EDT_UUID: ${{ secrets.EDT_UUID }}
+          HOSTS_URL: 'https://swordluan8-hash.github.io/cf-gate/hosts.txt'
+          SUB_URL: 'https://gate.jianailab.com/admin'
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+      - uses: actions/deploy-pages@v4
+        id: deployment
