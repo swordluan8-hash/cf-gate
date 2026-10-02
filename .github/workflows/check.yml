@@ -27,6 +27,7 @@ jobs:
         run: |
           python vpngate.py
           rm -f public/sub.txt
+          sed -i '/^#/d; /^$/d' public/hosts.txt
         env:
           CHECK_WORKER: 'https://gate-check.jianailab.com/check?sstp=vpn:vpn@'
           CHECK_CONCURRENCY: '16'
